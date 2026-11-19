@@ -1,0 +1,22 @@
+# Build outputs
+dist/
+build/
+release/
+*.exe
+*.dll
+*.pdb
+*.obj
+
+# Portable runtime data (index cache, settings, diagnostics)
+data/
+
+# Logs
+*.log
+
+# Editor / OS
+.vs/
+.idea/
+*.user
+*.suo
+Thumbs.db
+desktop.ini
