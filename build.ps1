@@ -1,3 +1,7 @@
+param(
+    [ValidateSet('x64', 'x86')]
+    [string]$Arch = 'x64'
+)
 $ErrorActionPreference = 'Stop'
 
 $root = $PSScriptRoot
@@ -9,10 +13,14 @@ if (-not (Test-Path $csc)) { throw "找不到 .NET Framework 4 编译器 csc.exe
 
 $dist = Join-Path $root 'dist'
 $build = Join-Path $root 'build'
+if ($Arch -eq 'x86') {
+    $dist = Join-Path $dist 'x86'
+    $build = Join-Path $build 'x86'
+}
 New-Item -ItemType Directory -Force $dist | Out-Null
 New-Item -ItemType Directory -Force $build | Out-Null
 
-$version = '1.2.2'
+$version = '1.2.3'
 $coreSrc = @(Get-ChildItem (Join-Path $root 'src\Core\*.cs') | ForEach-Object { $_.FullName })
 $uiSrc = @(Get-ChildItem (Join-Path $root 'src\UI\*.cs') | ForEach-Object { $_.FullName })
 
@@ -37,10 +45,10 @@ if (-not (Test-Path $icon)) {
 
 $refs = @('/r:System.dll', '/r:System.Core.dll', '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll')
 $manifest = Join-Path $root 'src\app.manifest'
-$common = @('/nologo', '/platform:x64', '/unsafe', '/optimize+')
+$common = @('/nologo', ('/platform:' + $Arch), '/unsafe', '/optimize+')
 
 $exe = Join-Path $dist 'FastFind.exe'
-Write-Host "编译 FastFind..." -ForegroundColor Cyan
+Write-Host ("编译 FastFind ({0})..." -f $Arch) -ForegroundColor Cyan
 $outArg = ('/out:' + $exe)
 $manifestArg = ('/win32manifest:' + $manifest)
 $exeArgs = @() + $common + @('/target:winexe', $outArg, $manifestArg)
@@ -56,7 +64,7 @@ $exeItem = Get-Item $exe
 Write-Host ("完成: {0} ({1:N1} KB)" -f $exeItem.FullName, ($exeItem.Length / 1KB)) -ForegroundColor Green
 
 $testExe = Join-Path $build 'EngineTests.exe'
-Write-Host "编译引擎测试..." -ForegroundColor Cyan
+Write-Host ("编译引擎测试 ({0})..." -f $Arch) -ForegroundColor Cyan
 $testArgs = @() + $common + @('/target:exe', ('/out:' + $testExe), '/r:System.dll', '/r:System.Core.dll')
 $testArgs += $coreSrc
 $testArgs += (Join-Path $root 'tests\EngineTests.cs')
@@ -65,13 +73,15 @@ if ($LASTEXITCODE -ne 0) { throw "测试编译失败 (exit $LASTEXITCODE)" }
 Write-Host ("完成: {0}" -f $testExe) -ForegroundColor Green
 
 $benchExe = Join-Path $build 'IndexBench.exe'
-Write-Host "编译索引基准..." -ForegroundColor Cyan
+Write-Host ("编译索引基准 ({0})..." -f $Arch) -ForegroundColor Cyan
 $benchArgs = @() + $common + @('/target:exe', ('/out:' + $benchExe), '/r:System.dll', '/r:System.Core.dll')
 $benchArgs += $coreSrc
 $benchArgs += (Join-Path $root 'tools\IndexBench.cs')
 & $csc @benchArgs
 if ($LASTEXITCODE -ne 0) { throw "基准编译失败 (exit $LASTEXITCODE)" }
 Write-Host ("完成: {0}" -f $benchExe) -ForegroundColor Green
+
+
 
 
 
